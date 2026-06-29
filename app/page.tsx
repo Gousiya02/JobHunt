@@ -6,7 +6,7 @@ import {
   MapPin, Briefcase, Clock, Coins, User, Store, Phone,
   ArrowRight, CheckCircle, LogOut, Plus, Search, Sparkles,
   Send, UserCheck, XCircle, RefreshCw, Layers, Check, CheckCircle2,
-  Sun, Moon
+  Sun, Moon, MessageSquare
 } from 'lucide-react';
 
 // Pool of fixed skills/tags
@@ -109,6 +109,13 @@ export default function Dashboard() {
   const [activeAreaName, setActiveAreaName] = useState<string | null>(null);
   const [geocodingArea, setGeocodingArea] = useState(false);
   const [seekerTab, setSeekerTab] = useState<'find-jobs' | 'my-applications' | 'edit-profile'>('find-jobs');
+
+  // Chat states
+  const [chatMessages, setChatMessages] = useState<any[]>([
+    { role: 'assistant', content: 'Hello! I am JobHunt AI. How can I help you find a job, write a resume, or learn new skills today?' }
+  ]);
+  const [chatInput, setChatInput] = useState('');
+  const [chatLoading, setChatLoading] = useState(false);
 
   // Employer states
   const [myCompanies, setMyCompanies] = useState<any[]>([]);
@@ -348,6 +355,37 @@ export default function Dashboard() {
       }
     } catch (err) {
       alert('Error saving profile');
+    }
+  };
+
+  const handleSendChatMessage = async (e?: React.FormEvent, customText?: string) => {
+    if (e) e.preventDefault();
+    const text = customText || chatInput;
+    if (!text.trim()) return;
+
+    const newMsg = { role: 'user', content: text };
+    const updatedMessages = [...chatMessages, newMsg];
+    setChatMessages(updatedMessages);
+    if (!customText) setChatInput('');
+    setChatLoading(true);
+
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: updatedMessages }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setChatMessages([...updatedMessages, { role: 'assistant', content: data.response }]);
+      } else {
+        setChatMessages([...updatedMessages, { role: 'assistant', content: 'Sorry, I encountered an error. Please try again.' }]);
+      }
+    } catch (err) {
+      console.error(err);
+      setChatMessages([...updatedMessages, { role: 'assistant', content: 'Connection error. Please check your network.' }]);
+    } finally {
+      setChatLoading(false);
     }
   };
 
@@ -1375,64 +1413,127 @@ export default function Dashboard() {
             )}
           </section>
 
-          {/* Seeker Profile & Info Panel */}
+          {/* Seeker Profile / AI Chatbot Sidebar Panel */}
           <aside style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-            <div className="glass" style={{ padding: '24px' }}>
-              <h3 style={{ fontSize: '1.2rem', marginBottom: '16px', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <User size={18} /> My Profile Info
-              </h3>
+            {seekerTab === 'edit-profile' ? (
+              <div className="glass" style={{ padding: '24px' }}>
+                <h3 style={{ fontSize: '1.2rem', marginBottom: '16px', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <User size={18} /> My Profile Info
+                </h3>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                <div>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>FULL NAME</span>
-                  <span style={{ fontSize: '1rem', fontWeight: 600 }}>{user?.seekerProfile?.name}</span>
-                </div>
-
-                {user?.seekerProfile?.phone && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                   <div>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>PHONE NUMBER</span>
-                    <span style={{ fontSize: '1rem', fontWeight: 600 }}>+91 {user?.seekerProfile?.phone}</span>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>FULL NAME</span>
+                    <span style={{ fontSize: '1rem', fontWeight: 600 }}>{user?.seekerProfile?.name}</span>
                   </div>
-                )}
 
-                <div>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>EMAIL ADDRESS</span>
-                  <span style={{ fontSize: '1rem', fontWeight: 600 }}>{user?.seekerProfile?.email}</span>
-                </div>
+                  {user?.seekerProfile?.phone && (
+                    <div>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>PHONE NUMBER</span>
+                      <span style={{ fontSize: '1rem', fontWeight: 600 }}>+91 {user?.seekerProfile?.phone}</span>
+                    </div>
+                  )}
 
-                <div>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>EXPERIENCE LEVEL</span>
-                  <span style={{ fontSize: '1rem', fontWeight: 600, textTransform: 'capitalize' }}>{user?.seekerProfile?.experienceLevel}</span>
-                </div>
-
-                <div>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>SKILLS</span>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                    {user?.seekerProfile?.skills.map((s: string) => (
-                      <span key={s} style={{ fontSize: '0.75rem', background: 'var(--color-primary-glow)', border: '1px solid var(--border-glass)', padding: '3px 10px', borderRadius: '12px', color: 'var(--color-primary)', fontWeight: 500 }}>{s}</span>
-                    ))}
+                  <div>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>EMAIL ADDRESS</span>
+                    <span style={{ fontSize: '1rem', fontWeight: 600 }}>{user?.seekerProfile?.email}</span>
                   </div>
-                </div>
 
-                <div>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>AVAILABILITY</span>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                    {user?.seekerProfile?.availability.map((a: string) => (
-                      <span key={a} style={{ fontSize: '0.75rem', background: 'var(--color-primary-glow)', border: '1px solid var(--border-glass)', padding: '3px 10px', borderRadius: '12px', color: 'var(--color-primary)', fontWeight: 500 }}>{a.replace('_', ' ')}</span>
-                    ))}
+                  <div>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>EXPERIENCE LEVEL</span>
+                    <span style={{ fontSize: '1rem', fontWeight: 600, textTransform: 'capitalize' }}>{user?.seekerProfile?.experienceLevel}</span>
                   </div>
-                </div>
 
-                <div>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>LANGUAGES</span>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                    {user?.seekerProfile?.languages.map((l: string) => (
-                      <span key={l} style={{ fontSize: '0.75rem', background: 'var(--color-primary-glow)', border: '1px solid var(--border-glass)', padding: '3px 10px', borderRadius: '12px', color: 'var(--color-primary)', fontWeight: 500 }}>{l}</span>
-                    ))}
+                  <div>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>SKILLS</span>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                      {user?.seekerProfile?.skills.map((s: string) => (
+                        <span key={s} style={{ fontSize: '0.75rem', background: 'var(--color-primary-glow)', border: '1px solid var(--border-glass)', padding: '3px 10px', borderRadius: '12px', color: 'var(--color-primary)', fontWeight: 500 }}>{s}</span>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>AVAILABILITY</span>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                      {user?.seekerProfile?.availability.map((a: string) => (
+                        <span key={a} style={{ fontSize: '0.75rem', background: 'var(--color-primary-glow)', border: '1px solid var(--border-glass)', padding: '3px 10px', borderRadius: '12px', color: 'var(--color-primary)', fontWeight: 500 }}>{a.replace('_', ' ')}</span>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>LANGUAGES</span>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                      {user?.seekerProfile?.languages.map((l: string) => (
+                        <span key={l} style={{ fontSize: '0.75rem', background: 'var(--color-primary-glow)', border: '1px solid var(--border-glass)', padding: '3px 10px', borderRadius: '12px', color: 'var(--color-primary)', fontWeight: 500 }}>{l}</span>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
+            ) : (
+              <div className="glass" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px', height: 'fit-content' }}>
+                <h3 style={{ fontSize: '1.2rem', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid var(--border-glass)', paddingBottom: '12px', margin: 0 }}>
+                  <MessageSquare size={18} style={{ color: 'var(--color-primary)' }} /> JobHunt AI Assistant
+                </h3>
+
+                {/* Message list */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', minHeight: '280px', maxHeight: '420px', overflowY: 'auto', paddingRight: '4px' }}>
+                  {chatMessages.map((msg, idx) => (
+                    <div key={idx} style={{ display: 'flex', flexDirection: 'column', alignItems: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
+                      <div style={{
+                        maxWidth: '85%',
+                        padding: '10px 14px',
+                        borderRadius: '14px',
+                        fontSize: '0.9rem',
+                        lineHeight: '1.4',
+                        background: msg.role === 'user' ? 'var(--grad-primary)' : 'rgba(255, 255, 255, 0.05)',
+                        border: msg.role === 'user' ? 'none' : '1px solid var(--border-glass)',
+                        color: msg.role === 'user' ? '#ffffff' : 'var(--text-main)',
+                        alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start',
+                        whiteSpace: 'pre-line'
+                      }}>
+                        {msg.content}
+                      </div>
+                    </div>
+                  ))}
+                  {chatLoading && (
+                    <div style={{ alignSelf: 'flex-start', background: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--border-glass)', padding: '10px 14px', borderRadius: '14px', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+                      Thinking...
+                    </div>
+                  )}
+                </div>
+
+                {/* Chips / Quick prompts */}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', borderTop: '1px solid var(--border-glass)', paddingTop: '12px' }}>
+                  <button onClick={() => handleSendChatMessage(undefined, "Find me a remote job")} className="btn-secondary" style={{ padding: '6px 12px', fontSize: '0.8rem', borderRadius: '20px' }}>
+                    🔍 Remote Jobs
+                  </button>
+                  <button onClick={() => handleSendChatMessage(undefined, "Suggest courses to improve my skills")} className="btn-secondary" style={{ padding: '6px 12px', fontSize: '0.8rem', borderRadius: '20px' }}>
+                    📚 Skill Courses
+                  </button>
+                  <button onClick={() => handleSendChatMessage(undefined, "How do I improve my resume?")} className="btn-secondary" style={{ padding: '6px 12px', fontSize: '0.8rem', borderRadius: '20px' }}>
+                    ✍️ Resume Help
+                  </button>
+                </div>
+
+                {/* Input form */}
+                <form onSubmit={(e) => handleSendChatMessage(e)} style={{ display: 'flex', gap: '8px' }}>
+                  <input
+                    type="text"
+                    placeholder="Ask about jobs, skills, etc..."
+                    value={chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                    style={{ flex: 1, padding: '10px 14px' }}
+                    disabled={chatLoading}
+                  />
+                  <button type="submit" className="btn-primary" style={{ padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} disabled={chatLoading}>
+                    <Send size={16} />
+                  </button>
+                </form>
+              </div>
+            )}
           </aside>
         </main>
       </div>

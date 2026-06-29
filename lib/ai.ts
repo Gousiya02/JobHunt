@@ -1,8 +1,8 @@
-import Anthropic from '@anthropic-ai/sdk';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
-const apiKey = process.env.ANTHROPIC_API_KEY || '';
+const apiKey = process.env.GEMINI_API_KEY || '';
 
-const anthropic = apiKey ? new Anthropic({ apiKey }) : null;
+const genAI = apiKey ? new GoogleGenerativeAI(apiKey) : null;
 
 interface GeneratorParams {
   seeker: {
@@ -55,31 +55,17 @@ CRITICAL LANGUAGE REQUIREMENT:
 - If a regional language is requested (like Hindi, Kannada, Tamil, Telugu, Bengali), output the bullets in the native script of that language (e.g. Hindi in Devanagari script, Kannada in Kannada script, etc.).
 - Output ONLY the bullet points. Do not include any titles, introductions, or conversational preambles.`;
 
-  if (!anthropic) {
-    console.log('[AI RESUME SERVICE] ANTHROPIC_API_KEY is not configured. Falling back to local mock generator.');
+  if (!genAI) {
+    console.log('[AI RESUME SERVICE] GEMINI_API_KEY is not configured. Falling back to local mock generator.');
     return generateMockResume(seeker, job, pitchLanguage);
   }
 
   try {
-    const response = await anthropic.messages.create({
-      model: 'claude-3-5-haiku-20241022',
-      max_tokens: 400,
-      temperature: 0.7,
-      messages: [
-        {
-          role: 'user',
-          content: prompt
-        }
-      ]
-    });
-
-    const block = response.content[0];
-    if (block.type === 'text') {
-      return block.text.trim();
-    }
-    return generateMockResume(seeker, job, pitchLanguage);
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    const response = await model.generateContent(prompt);
+    return response.response.text().trim();
   } catch (error) {
-    console.error('Anthropic API error, falling back to mock:', error);
+    console.error('Gemini API error, falling back to mock:', error);
     return generateMockResume(seeker, job, pitchLanguage);
   }
 }
@@ -96,31 +82,17 @@ Text to translate:
 ${text}
 """`;
 
-  if (!anthropic) {
-    console.log('[AI TRANSLATION SERVICE] ANTHROPIC_API_KEY is not configured. Falling back to local mock translator.');
+  if (!genAI) {
+    console.log('[AI TRANSLATION SERVICE] GEMINI_API_KEY is not configured. Falling back to local mock translator.');
     return generateMockTranslation(text, targetLanguage);
   }
 
   try {
-    const response = await anthropic.messages.create({
-      model: 'claude-3-5-haiku-20241022',
-      max_tokens: 600,
-      temperature: 0.3,
-      messages: [
-        {
-          role: 'user',
-          content: prompt
-        }
-      ]
-    });
-
-    const block = response.content[0];
-    if (block.type === 'text') {
-      return block.text.trim();
-    }
-    return generateMockTranslation(text, targetLanguage);
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    const response = await model.generateContent(prompt);
+    return response.response.text().trim();
   } catch (error) {
-    console.error('Anthropic translation error, falling back to mock:', error);
+    console.error('Gemini translation error, falling back to mock:', error);
     return generateMockTranslation(text, targetLanguage);
   }
 }
@@ -165,35 +137,24 @@ Output ONLY a raw JSON object matching the format below. Do not include markdown
   "explanation": "..."
 }`;
 
-  if (!anthropic) {
-    console.log('[AI FIT SERVICE] ANTHROPIC_API_KEY is not configured. Falling back to local mock analyzer.');
+  if (!genAI) {
+    console.log('[AI FIT SERVICE] GEMINI_API_KEY is not configured. Falling back to local mock analyzer.');
     return generateMockFitAnalysis(seeker, job, distanceKm, companyLanguage);
   }
 
   try {
-    const response = await anthropic.messages.create({
-      model: 'claude-3-5-haiku-20241022',
-      max_tokens: 300,
-      temperature: 0.3,
-      messages: [
-        {
-          role: 'user',
-          content: prompt
-        }
-      ]
-    });
-
-    const block = response.content[0];
-    if (block.type === 'text') {
-      const parsed = JSON.parse(block.text.trim());
-      return {
-        score: Number(parsed.score || 70),
-        explanation: parsed.explanation || 'Good fit candidate based on qualifications.'
-      };
-    }
-    return generateMockFitAnalysis(seeker, job, distanceKm, companyLanguage);
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    const response = await model.generateContent(prompt);
+    const text = response.response.text().trim();
+    // Clean any markdown backticks if returned
+    const cleanText = text.replace(/```json/i, '').replace(/```/g, '').trim();
+    const parsed = JSON.parse(cleanText);
+    return {
+      score: Number(parsed.score || 70),
+      explanation: parsed.explanation || 'Good fit candidate based on qualifications.'
+    };
   } catch (error) {
-    console.error('Anthropic fit analysis error, falling back to mock:', error);
+    console.error('Gemini fit analysis error, falling back to mock:', error);
     return generateMockFitAnalysis(seeker, job, distanceKm, companyLanguage);
   }
 }
@@ -225,7 +186,7 @@ function generateMockFitAnalysis(seeker: any, job: any, distanceKm: number, comp
 
   // Explanations based on language
   let explanation = `Lives only ${distanceKm}km away in ${seeker.locality}, matches job profile and available for shifts.`;
-  
+
   if (companyLanguage === 'Hinglish') {
     explanation = `Sirf ${distanceKm}km door ${seeker.locality} mein rehte hain, required skills match karte hain aur shifts ke liye ready hain.`;
   } else if (companyLanguage === 'Hindi') {
@@ -250,14 +211,14 @@ function generateMockResume(
 ): string {
   const skillsStr = seeker.skills.slice(0, 3).join(' and ');
   const langStr = seeker.languages.join(', ');
-  
+
   if (pitchLanguage === 'Hinglish') {
     return `• Candidate: ${seeker.name} commutes locally from ${seeker.locality}, jo daily time par aane ke liye sahi hai.
 • Skills & Languages: ${skillsStr || 'kaam karne'} ka experience hai aur ${langStr} mein baat kar sakte hain.
 • Shift Fit: ${seeker.availability.join(', ')} ke liye available hain, jo aapki shift: "${job.shiftTiming}" se match karta hai.
 • Experience Level: "${seeker.experienceLevel}" level hai aur mehnat se kaam karne ke liye excited hain.`;
   }
-  
+
   if (pitchLanguage === 'Hindi') {
     return `• उम्मीदवार: ${seeker.name} ${seeker.locality} से आसानी से काम पर आ सकते हैं, जिससे समय की बचत होगी।
 • कौशल और भाषाएं: ${skillsStr || 'सामान्य कार्यों'} में अनुभवी हैं और ${langStr} भाषा बोलते हैं।
