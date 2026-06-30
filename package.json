@@ -10,6 +10,7 @@
     "build": "npm install --include=dev --prefix backend && npm install --include=dev --prefix frontend && npm run build:backend && npm run build:frontend"
   },
   "devDependencies": {
-    "concurrently": "^8.2.2"
+    "concurrently": "^8.2.2",
+    "typescript": "^6.0.3"
   }
 }
