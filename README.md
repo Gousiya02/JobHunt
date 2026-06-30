@@ -1,36 +1,80 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# JobHunt: Local Job Finder & AI Resume Builder
 
-## Getting Started
+JobHunt is a premium full-stack web application designed to connect local part-time job seekers with employers and small businesses. It features location-based job matching, an interactive AI Career Guide, and automated AI resume/pitch generation.
 
-First, run the development server:
+---
 
+## 🚀 Key Features
+
+### 👤 Job Seeker Dashboard
+* **Instant Sign Up & Login**: Secure email-password authentication with inline validation checks.
+* **Locality Search**: Search for jobs near any specific neighborhood/city using geocoding.
+* **Pill Chips for Skills**: View beautifully highlighted required skills tags on job cards.
+* **Hired Contact Unlock**: Seeker automatically unlocks the employer's phone number once they are marked as hired.
+* **Real-time Background Updates**: Background polling refreshes jobs, applications, and status updates silently every 10 seconds.
+
+### 🏢 Employer Dashboard
+* **Company Registration**: Fast company profiling with address coordinates.
+* **Applications Management**: View applications received, shortlist candidates, reject, or mark them as hired.
+* **Locked Hiring States**: Once a candidate is marked as "Hired", other action buttons (shortlist, reject) are disabled to prevent accidental status changes.
+* **Candidate Phone Security**: Seeker phone numbers are hidden (`Hidden until hired`) until marked as "Hired".
+* **Filtered Applications View**: Direct "Applications (N)" action button on job posts to filter the applications tab specifically for that job.
+
+### 🤖 JobHunt AI Assistant
+* **AI Chat Guide**: A sidebar chatbot powered by `gemini-2.5-flash` in the seeker view.
+* **Ultra-Concise Tips**: Instructed to provide responses in simple words, avoiding fluff, capped at a maximum of 2-3 sentences.
+* **Automatic Pitch Generation**: Generates an AI resume/pitch translated to the seeker's preferred language when applying to a job.
+
+---
+
+## 🛠️ Technology Stack
+
+* **Frontend**: React, TypeScript, Vite, Vanilla CSS (with glassmorphism theme styling)
+* **Backend**: Node.js, Express, Mongoose
+* **Database**: MongoDB (with automated `2dsphere` geospatial index building on startup)
+* **AI Model**: Google Gemini API (`gemini-2.5-flash`)
+
+---
+
+## 💻 Local Setup & Development
+
+### 1. Install dependencies for all folders
+Run the following script in the root directory to install packages for root, backend, and frontend:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm run install-all
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. Configure Environment Variables
+Create a `.env` file in the `backend` folder:
+```env
+MONGODB_URI=mongodb://127.0.0.1:27017/job_hunt
+GEMINI_API_KEY=your_gemini_api_key_here
+PORT=3001
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 3. Launch Development Servers
+Run the concurrent dev command in the root folder to start both Express and Vite frontend servers:
+```bash
+npm run dev
+```
+* Frontend will run on: `http://localhost:5173`
+* Backend will run on: `http://localhost:3001`
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+---
 
-## Learn More
+## ☁️ Vercel Deployment
 
-To learn more about Next.js, take a look at the following resources:
+The project is fully configured for a **Vercel-only** deployment.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. **Commit and Push** your code to GitHub:
+   ```bash
+   git add .
+   git commit -m "feat: project completed"
+   git push -u origin main
+   ```
+2. Import the repository in **Vercel**.
+3. Set the **Framework Preset** to **Other** (it will read `npm run build` from the root `package.json` to compile the backend and frontend).
+4. Add environment variables:
+   * `MONGODB_URI`: *Your cloud MongoDB Atlas URI.*
+   * `GEMINI_API_KEY`: *Your Gemini API key.*
+5. Deploy! Vercel's serverless configurations in `vercel.json` will route all api and asset traffic under a single domain.
